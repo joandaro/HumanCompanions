@@ -508,22 +508,12 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
         for (int i = 0; i < this.inventory.getContainerSize(); i++) {
             ItemStack stack = this.inventory.getItem(i);
 
-            if (!this.isAllowedFood(stack)) {
-                continue;
-            }
+            if (!this.isAllowedFood(stack)) {continue;}
 
             var food = stack.getFoodProperties(this);
-            if (food.getNutrition() + this.getHealth() > this.getMaxHealth()) {
-                continue;
-            }
+            if (food.getNutrition() + this.getHealth() > this.getMaxHealth()) {continue;}
 
-            if (this.level().getRecipeManager().getRecipeFor(
-                    RecipeType.SMELTING,
-                    new SimpleContainer(stack),
-                    this.level()
-            ).isPresent()) {
-                continue;
-            }
+            if (CompanionSmelting.canSmelt(stack, this.level())) {continue;}
 
             return stack;
         }

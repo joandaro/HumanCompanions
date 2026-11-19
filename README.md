@@ -1,6 +1,20 @@
-![Logo](https://github.com/justinwon777/HumanCompanions/blob/main/companions.png)
-[![Downloads](http://cf.way2muchnoise.eu/full_570319_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/human-companions)
-[![Available](http://cf.way2muchnoise.eu/versions/full_570319_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/human-companions)
+This is a fork of justinwon777's HumanCompanions mod, with a few AI fixes and new quirks. I'm only working on Forge 1.20.1 
+
+An AI is involved in the work.
+
+- tried to fix companions stuck attacking a mob it can't reach.
+- companions teleports to owner if they're over 24 blocks away regardless if they're still in a fight (so they'll be less likely to get lost if they did get stuck attacking anything.)
+- companions get damage absorption in proportion to food saturation. Before, they only recover health according to food hunger value, making rotten flesh the best food for them, which doesn't sit right with me so I buffed the better foods.
+- companions no longer eat uncooked meat or food that may provide harmful effects (except rotten flesh, that's a special case cuz sometimes we all have to rely on those.)
+- tamed companions can pick up food, ore, or anything already has a copy in their backpack (gears they're equipping aren't counted), practically help collecting loot. 
+- tamed companions try to cook food on campfire when player sleeps to skip the night, if they have a campfire in their inventory, or if there is a campfire block nearby. 
+- <s>tried to add epicfight compatibility</s> this might not actually work. I can't figure where epicfight datapatch goes it seems to change with each update. I tried okay x_x
+
+
+Below are the original links and discriptions.
+
+
+
 # About
 
 This mod adds new human companions that can help you on your journey. Currently available for Forge 1.16.5, 1.18.2, 1.19.2, and 1.20.1.
