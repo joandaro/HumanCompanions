@@ -7,13 +7,13 @@ An AI is involved in the work.
 - companions get damage absorption in proportion to food saturation. Before, they only recover health according to food hunger value, making rotten flesh the best food for them, which doesn't sit right with me so I buffed the better foods.
 - companions no longer eat uncooked meat or food that may provide harmful effects (except rotten flesh, that's a special case cuz sometimes we all have to rely on those.)
 - tamed companions can pick up food, ore, or anything already has a copy in their backpack (gears they're equipping aren't counted), practically help collecting loot. 
-- tamed companions try to cook food on campfire when player sleeps to skip the night, if they have a campfire in their inventory, or if there is a campfire block nearby. 
+- tamed companions try to cook food on campfire when player sleeps to skip the night, if they have a campfire in their inventory, or if there is a lit campfire block nearby. 
 - <s>tried to add epicfight compatibility</s> this might not actually work. I can't figure where epicfight datapatch goes it seems to change with each update. I tried okay x_x
 
 
 Below are the original links and discriptions.
 
-
+------------
 
 # About
 
