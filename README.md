@@ -2,6 +2,7 @@ This is a fork of justinwon777's HumanCompanions mod, with a few AI fixes and ne
 
 An AI is involved in the work.
 
+- fixed leveled-up companions losing some health upon cross-dimention teleport or restarting the game.
 - tried to fix companions stuck attacking a mob it can't reach.
 - companions teleports to owner if they're over 24 blocks away regardless if they're still in a fight (so they'll be less likely to get lost if they did get stuck attacking anything.)
 - companions get damage absorption in proportion to food saturation. Before, they only recover health according to food hunger value, making rotten flesh the best food for them, which doesn't sit right with me so I buffed the better foods.
