@@ -2,6 +2,7 @@ package com.github.justinwon777.humancompanions.entity.ai;
 
 import com.github.justinwon777.humancompanions.entity.AbstractHumanCompanionEntity;
 import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
+import net.minecraft.world.phys.Vec3;
 
 public class CustomFollowOwnerGoal extends FollowOwnerGoal {
 
@@ -17,5 +18,16 @@ public class CustomFollowOwnerGoal extends FollowOwnerGoal {
             return false;
         }
         return super.canUse();
+    }
+    @Override
+    public void tick() {
+        Vec3 oldPosition = companion.position();
+        super.tick();
+
+        if (companion.distanceToSqr(oldPosition) > 0.0) {
+            companion.targetSelector.getRunningGoals()
+                    .forEach(goal -> goal.stop());
+            companion.setTarget(null);
+        }
     }
 }

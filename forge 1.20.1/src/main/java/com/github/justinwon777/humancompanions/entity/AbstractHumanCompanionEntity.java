@@ -19,6 +19,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.*;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -27,20 +28,27 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.*;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.SimpleContainer;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.event.entity.player.PlayerContainerEvent;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.commons.lang3.ArrayUtils;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Predicate;
 
 public class AbstractHumanCompanionEntity extends TamableAnimal {
 
@@ -98,11 +106,17 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
     public AbstractHumanCompanionEntity(EntityType<? extends TamableAnimal> entityType, Level level) {
         super(entityType, level);
         this.setTame(false);
-//        this.setCanPickUpLoot(true);
+        this.setCanPickUpLoot(true);
         ((GroundPathNavigation)this.getNavigation()).setCanOpenDoors(true);
         this.getNavigation().setCanFloat(true);
+        Predicate<LivingEntity> alertFilter = target -> {
+            if (target instanceof Creeper) {return false;}
+            Path path = this.getNavigation().createPath(target, 0);
+            return path != null && path.canReach();
+        };
         for (int i = 0; i < CompanionData.alertMobs.length; i++) {
-            alertMobGoals.add(new NearestAttackableTargetGoal(this, CompanionData.alertMobs[i], false));
+            this.alertMobGoals.add(new NearestAttackableTargetGoal(
+                    this, CompanionData.alertMobs[i], false, alertFilter));
         }
         for (int i = 0; i < CompanionData.huntMobs.length; i++) {
             huntMobGoals.add(new NearestAttackableTargetGoal(this, CompanionData.huntMobs[i], false));
@@ -114,9 +128,11 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.goalSelector.addGoal(0, new EatGoal(this));
         this.goalSelector.addGoal(1, new SitWhenOrderedToGoal(this));
+        this.goalSelector.addGoal(1, new CustomFollowOwnerGoal(this, 1.3D, 24.0F, 24.0F, false));
         this.goalSelector.addGoal(2, new AvoidCreeperGoal(this, Creeper.class, 10.0F, 1.5D, 1.5D));
         this.goalSelector.addGoal(3, new MoveBackToGuardGoal(this));
         this.goalSelector.addGoal(3, new CustomFollowOwnerGoal(this, 1.3D, 8.0F, 2.5F, false));
+        this.goalSelector.addGoal(4, new PickupItemGoal(this, 1.0));
         this.goalSelector.addGoal(5, new CustomWaterAvoidingRandomStrollGoal(this, 1.0D));
         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 6.0F));
         this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
@@ -425,7 +441,7 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
             return false;
         }
 
-        hurtArmor(p_34288_, p_34289_);
+        //hurtArmor(p_34288_, p_34289_);
         return super.hurt(p_34288_, p_34289_);
     }
 
@@ -480,22 +496,102 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
     @Override
     public ItemStack eat(Level world, ItemStack stack) {
         if (stack.isEdible()) {
-            this.heal(stack.getItem().getFoodProperties().getNutrition());
+            var food = stack.getFoodProperties(this);
+            this.heal(food.getNutrition());
+            this.setAbsorptionAmount(this.getAbsorptionAmount() + food.getNutrition() * food.getSaturationModifier());
         }
         super.eat(world, stack);
         return stack;
     }
 
     public ItemStack checkFood() {
-        for (int i = 0; i < this.inventory.getContainerSize(); ++i) {
-            ItemStack itemstack = this.inventory.getItem(i);
-            if (itemstack.isEdible()) {
-                if ((float)itemstack.getItem().getFoodProperties().getNutrition() + this.getHealth() <= this.getMaxHealth()) {
-                    return itemstack;
-                }
+        for (int i = 0; i < this.inventory.getContainerSize(); i++) {
+            ItemStack stack = this.inventory.getItem(i);
+
+            if (!this.isAllowedFood(stack)) {
+                continue;
             }
+
+            var food = stack.getFoodProperties(this);
+            if (food.getNutrition() + this.getHealth() > this.getMaxHealth()) {
+                continue;
+            }
+
+            if (this.level().getRecipeManager().getRecipeFor(
+                    RecipeType.SMELTING,
+                    new SimpleContainer(stack),
+                    this.level()
+            ).isPresent()) {
+                continue;
+            }
+
+            return stack;
         }
         return ItemStack.EMPTY;
+    }
+
+    private boolean isAllowedFood(ItemStack stack) {
+        if (stack.is(Items.ROTTEN_FLESH)) return true;
+        if (!stack.isEdible()) return false;
+
+        var food = stack.getFoodProperties(this);
+        if (food == null) return false;
+
+        for (var entry : food.getEffects()) {
+            var effect = entry.getFirst();
+            if (effect != null && entry.getSecond() > 0
+                    && effect.getEffect().getCategory() == MobEffectCategory.HARMFUL) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean wantsToPickUp(ItemStack stack) {
+        if (!this.isTame()) {
+            return false;
+        }
+
+        var id = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        return (stack.is(Tags.Items.RAW_MATERIALS)
+                || stack.is(Tags.Items.INGOTS)
+                || stack.is(Tags.Items.GEMS)
+                || stack.is(Tags.Items.DUSTS)
+                || stack.is(Tags.Items.NUGGETS)
+                || stack.is(Tags.Items.ORES)
+                || CompanionData.EXTRA_PICKUP_ITEMS.contains(id)
+                || (this.inventory.hasAnyMatching(existing -> !existing.isEmpty() && existing.is(stack.getItem())) && !this.isEquippedItem(stack))
+                || this.isAllowedFood(stack))
+                && this.inventory.canAddItem(stack);
+    }
+
+    private boolean isEquippedItem(ItemStack stack) {
+        for (ItemStack equipped : this.getAllSlots()) {
+            if (!equipped.isEmpty() && equipped.is(stack.getItem())) {
+                return true;
+            }
+        }
+        return false;
+    }
+    @Override
+    protected void pickUpItem(ItemEntity itemEntity) {
+        ItemStack stack = itemEntity.getItem();
+        ItemStack remaining = this.inventory.addItem(stack);
+        int pickedUp = stack.getCount() - remaining.getCount();
+
+        if (pickedUp <= 0) {
+            return;
+        }
+
+        this.onItemPickup(itemEntity);
+        this.take(itemEntity, pickedUp);
+
+        if (remaining.isEmpty()) {
+            itemEntity.discard();
+        } else {
+            itemEntity.setItem(remaining);
+        }
     }
 
     public void clearTarget() {
@@ -520,6 +616,7 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
         while(this.experienceProgress >= 1.0F) {
             this.experienceProgress = (this.experienceProgress - 1.0F) * (float)this.getXpNeededForNextLevel();
             this.giveExperienceLevels(1);
+            checkStats();
             this.experienceProgress /= (float)this.getXpNeededForNextLevel();
         }
 
@@ -579,18 +676,18 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
     }
 
     public void checkStats() {
-        if ((int) this.getMaxHealth() != getBaseHealth() + (getExpLvl() / 3)) {
+    //    if ((int) this.getMaxHealth() != getBaseHealth() + (getExpLvl() / 3)) {
             if (getExpLvl() / 3 != 0) {
-                modifyMaxHealth(getExpLvl() / 3, "companion level health", false);
+                modifyMaxHealth(getExpLvl() / 3, "companion level health", true);
             }
-        }
+    //    }
     }
 
     public void tick() {
         if (!this.level().isClientSide()) {
-            checkArmor();
             if (this.tickCount % 10 == 0) {
-                checkStats();
+                checkArmor();
+                //checkStats();
                 LivingEntity target = this.getTarget();
                 if (target != null && !target.isAlive()) {
                     this.clearTarget();

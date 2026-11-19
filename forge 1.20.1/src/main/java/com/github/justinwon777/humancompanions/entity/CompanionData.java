@@ -16,6 +16,7 @@ import net.minecraft.world.item.Items;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 public class CompanionData {
 
@@ -60,6 +61,7 @@ public class CompanionData {
 //            Items.RABBIT_STEW
     };
 
+
     public static MutableComponent[] tameFail = new MutableComponent[]{
             Component.literal("I need more food."),
             Component.literal("Is that all you got?"),
@@ -93,34 +95,52 @@ public class CompanionData {
     };
 
     public static Class<?>[] alertMobs = new Class<?>[]{
-            Blaze.class,
-            EnderMan.class,
-            Endermite.class,
+            //Blaze.class,
+            //EnderMan.class,
+            //Endermite.class,
             Ghast.class,
-            Giant.class,
-            Guardian.class,
+            //Giant.class,
+            //Guardian.class,
             Hoglin.class,
-            MagmaCube.class,
+            //MagmaCube.class,
             Phantom.class,
             Shulker.class,
-            Silverfish.class,
+            //Silverfish.class,
             Slime.class,
-            Spider.class,
-            Vex.class,
-            AbstractSkeleton.class,
-            Zoglin.class,
-            Zombie.class,
-            Raider.class
+            //Spider.class,
+            //Vex.class,
+            //AbstractSkeleton.class,
+            //Zoglin.class,
+            //Zombie.class,
+            //Raider.class,
+            Monster.class
     };
 
     public static Class<?>[] huntMobs = new Class<?>[]{
             Chicken.class,
             Cow.class,
-            MushroomCow.class,
+            //MushroomCow.class,
             Pig.class,
             Rabbit.class,
             Sheep.class
     };
+
+    public static final Set<ResourceLocation> EXTRA_PICKUP_ITEMS = Set.of(
+            new ResourceLocation("minecraft:coal"),
+            new ResourceLocation("minecraft:charcoal"),
+    //        new ResourceLocation("minecraft:bone"),
+    //        new ResourceLocation("minecraft:arrow"),
+    //        new ResourceLocation("minecraft:string"),
+            new ResourceLocation("minecraft:gunpowder"),
+            new ResourceLocation("minecraft:leather"),
+    //        new ResourceLocation("minecraft:feather"),
+    //        new ResourceLocation("minecraft:spider_eye"),
+    //        new ResourceLocation("minecraft:slime_ball"),
+            new ResourceLocation("minecraft:ender_eye"),
+            new ResourceLocation("minecraft:blaze_rod"),
+            new ResourceLocation("minecraft:ghast_tear"),
+            new ResourceLocation("minecraft:netherite_scrap")
+    );
 
     // skins[0] == male, skins[1] == female
     public static ResourceLocation[][] skins = new ResourceLocation[][] {
