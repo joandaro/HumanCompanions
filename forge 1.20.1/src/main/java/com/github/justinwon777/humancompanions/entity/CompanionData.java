@@ -125,23 +125,6 @@ public class CompanionData {
             Sheep.class
     };
 
-    public static final Set<ResourceLocation> EXTRA_PICKUP_ITEMS = Set.of(
-            new ResourceLocation("minecraft:coal"),
-            new ResourceLocation("minecraft:charcoal"),
-    //        new ResourceLocation("minecraft:bone"),
-    //        new ResourceLocation("minecraft:arrow"),
-    //        new ResourceLocation("minecraft:string"),
-            new ResourceLocation("minecraft:gunpowder"),
-            new ResourceLocation("minecraft:leather"),
-    //        new ResourceLocation("minecraft:feather"),
-    //        new ResourceLocation("minecraft:spider_eye"),
-    //        new ResourceLocation("minecraft:slime_ball"),
-            new ResourceLocation("minecraft:ender_eye"),
-            new ResourceLocation("minecraft:blaze_rod"),
-            new ResourceLocation("minecraft:ghast_tear"),
-            new ResourceLocation("minecraft:netherite_scrap")
-    );
-
     // skins[0] == male, skins[1] == female
     public static ResourceLocation[][] skins = new ResourceLocation[][] {
             new ResourceLocation[] {

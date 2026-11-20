@@ -3,6 +3,9 @@ package com.github.justinwon777.humancompanions.core;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.List;
 
 public class Config {
 
@@ -15,6 +18,7 @@ public class Config {
     public static ForgeConfigSpec.IntValue BASE_HEALTH;
     public static ForgeConfigSpec.BooleanValue LOW_HEALTH_FOOD;
     public static ForgeConfigSpec.BooleanValue CREEPER_WARNING;
+    public static ForgeConfigSpec.ConfigValue<List<? extends String>> EXTRA_PICKUP_ITEMS;
 
     public static void register() {
         registerCommonConfig();
@@ -53,6 +57,35 @@ public class Config {
         CREEPER_WARNING = COMMON_BUILDER
                 .comment("Toggles whether companions alert you if a creeper is nearby.")
                 .define("creeperWarning", true);
+        EXTRA_PICKUP_ITEMS = COMMON_BUILDER
+                .comment("Extra item IDs allowed for pickup. Use namespace:item_id.")
+                .defineListAllowEmpty("extraPickupItems", List.of(
+                        "minecraft:coal",
+                        "minecraft:charcoal",
+                        "minecraft:gunpowder",
+                        "minecraft:bone",
+                        "minecraft:arrow",
+                        "minecraft:string",
+                        "minecraft:leather",
+                        "minecraft:egg",
+                        "minecraft:rabbit_hide",
+                        "minecraft:rabbit_foot",
+                        "minecraft:white_wool",
+                        "minecraft:black_wool",
+                        "minecraft:brown_wool",
+                        "minecraft:gray_wool",
+                        "minecraft:light_gray_wool",
+                        "minecraft:feather",
+                        "minecraft:spider_eye",
+                        "minecraft:slime_ball",
+                        "minecraft:ender_eye",
+                        "minecraft:blaze_rod",
+                        "minecraft:wither_skeleton_skull",
+                        "minecraft:ghast_tear",
+                        "minecraft:netherite_scrap"
+                ), value -> value instanceof String id
+                        && id.contains(":")
+                        && ResourceLocation.tryParse(id) != null);
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, COMMON_BUILDER.build());
     }
 }

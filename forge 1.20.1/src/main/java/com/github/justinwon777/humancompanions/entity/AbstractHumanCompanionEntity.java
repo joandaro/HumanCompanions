@@ -7,6 +7,7 @@ import com.github.justinwon777.humancompanions.core.PacketHandler;
 import com.github.justinwon777.humancompanions.entity.ai.*;
 import com.github.justinwon777.humancompanions.networking.OpenInventoryPacket;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -119,7 +120,9 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
                     this, CompanionData.alertMobs[i], false, alertFilter));
         }
         for (int i = 0; i < CompanionData.huntMobs.length; i++) {
-            huntMobGoals.add(new NearestAttackableTargetGoal(this, CompanionData.huntMobs[i], false));
+            huntMobGoals.add(new NearestAttackableTargetGoal(
+                    this, CompanionData.huntMobs[i], false,
+                    target -> !(target instanceof Mob mob && mob.isLeashed())));
         }
     }
 
@@ -550,7 +553,7 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
                 || stack.is(Tags.Items.DUSTS)
                 || stack.is(Tags.Items.NUGGETS)
                 || stack.is(Tags.Items.ORES)
-                || CompanionData.EXTRA_PICKUP_ITEMS.contains(id)
+                || Config.EXTRA_PICKUP_ITEMS.get().contains(id.toString())
                 || (this.inventory.hasAnyMatching(existing -> !existing.isEmpty() && existing.is(stack.getItem())) && !this.isEquippedItem(stack))
                 || this.isAllowedFood(stack))
                 && this.inventory.canAddItem(stack);
