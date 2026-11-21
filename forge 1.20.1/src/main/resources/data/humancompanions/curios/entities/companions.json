@@ -1,0 +1,17 @@
+{
+  "entities": [
+    "humancompanions:knight",
+    "humancompanions:axeguard",
+    "humancompanions:archer",
+    "humancompanions:arbalist"
+  ],
+  "slots": [
+    "ring",
+    "necklace",
+    "head",
+    "body",
+    "belt",
+    "charm",
+    "back"
+  ]
+}

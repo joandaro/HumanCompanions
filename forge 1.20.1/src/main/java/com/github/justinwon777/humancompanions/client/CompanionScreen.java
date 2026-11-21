@@ -1,6 +1,8 @@
 package com.github.justinwon777.humancompanions.client;
 
 import com.github.justinwon777.humancompanions.HumanCompanions;
+import com.github.justinwon777.humancompanions.compat.CompanionCurioSlotData;
+import com.github.justinwon777.humancompanions.compat.CompanionCurios;
 import com.github.justinwon777.humancompanions.container.CompanionContainer;
 import com.github.justinwon777.humancompanions.core.PacketHandler;
 import com.github.justinwon777.humancompanions.entity.AbstractHumanCompanionEntity;
@@ -9,7 +11,6 @@ import com.github.justinwon777.humancompanions.entity.Archer;
 import com.github.justinwon777.humancompanions.entity.Knight;
 import com.github.justinwon777.humancompanions.networking.*;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -21,20 +22,29 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 
 @OnlyIn(Dist.CLIENT)
 public class CompanionScreen extends AbstractContainerScreen<CompanionContainer> implements MenuAccess<CompanionContainer> {
+    private static final ResourceLocation CURIO_BACKGROUND = new ResourceLocation(
+            "curios", "textures/gui/inventory_revamp.png");
+    private static final ResourceLocation EMPTY_CURIO_ICON = new ResourceLocation(
+            "curios", "slot/empty_curio_slot");
     private static final ResourceLocation CONTAINER_BACKGROUND = new ResourceLocation(HumanCompanions.MOD_ID,
-        "textures/inventory.png");
+            "textures/inventory.png");
     private static final ResourceLocation ALERT_BUTTON = new ResourceLocation(HumanCompanions.MOD_ID, "textures/alertbutton.png");
     private static final ResourceLocation HUNTING_BUTTON = new ResourceLocation(HumanCompanions.MOD_ID, "textures" +
             "/huntingbutton.png");
@@ -54,6 +64,9 @@ public class CompanionScreen extends AbstractContainerScreen<CompanionContainer>
     private CompanionButton clearButton;
     private CompanionButton stationeryButton;
     private CompanionButton releaseButton;
+    private Button previousCurioPage;
+    private Button nextCurioPage;
+    private final Map<String, ResourceLocation> curioIcons = new HashMap<>();
     DecimalFormat df = new DecimalFormat("#.#");
     int sidebarx;
     int rowHeight;
@@ -90,15 +103,102 @@ public class CompanionScreen extends AbstractContainerScreen<CompanionContainer>
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderTexture(0, CONTAINER_BACKGROUND);
-        int i = (this.width - this.imageWidth) / 2;
-        int j = (this.height - this.imageHeight) / 2;
+        int i = this.leftPos;
+        int j = this.topPos;
         pGuiGraphics.blit(CONTAINER_BACKGROUND, i, j, 0, 0, this.imageWidth, this.containerRows * 18 + 17);
         pGuiGraphics.blit(CONTAINER_BACKGROUND, i, j + this.containerRows * 18 + 17, 0, 126, this.imageWidth, 96);
+        if (menu.hasCurios()) {
+            renderCurioPanel(pGuiGraphics);
+        }
+    }
+
+    private int getCurioFrameX() {
+        return leftPos - CompanionCurios.PANEL_GAP - menu.getCurioPanelWidth();
+    }
+
+    private int getCurioFrameY() {
+        return topPos;
+    }
+
+    private int getCurioFrameHeight() {
+        return menu.getCurioPanelHeight();
+    }
+
+    private void renderCurioPanel(GuiGraphics graphics) {
+        RenderSystem.enableBlend();
+        drawCurioFrame(graphics, getCurioFrameX(), getCurioFrameY(),
+                menu.getCurioPanelWidth(), getCurioFrameHeight());
+
+        for (Slot slot : menu.slots) {
+            CompanionCurioSlotData address = menu.getCurioSlotData(slot.index);
+            if (address == null || !slot.isActive()) {
+                continue;
+            }
+
+            int x = leftPos + slot.x;
+            int y = topPos + slot.y;
+            graphics.blit(CURIO_BACKGROUND, x - 1, y - 1, 7, 7, 18, 18);
+
+            if (!slot.hasItem() && minecraft != null) {
+                ResourceLocation icon = curioIcons.computeIfAbsent(address.identifier(),
+                        id -> CuriosArtwork.getSlotIcon(id, companion.level()));
+                graphics.blit(x, y, 0, 16, 16,
+                        minecraft.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(icon));
+            }
+        }
+        RenderSystem.disableBlend();
+    }
+
+    private void drawCurioFrame(GuiGraphics graphics, int x, int y, int width, int height) {
+        // Curios' blank backplate occupies (91, 0), size 32x166, with 7px edges.
+        int insideWidth = width - 14;
+        int insideHeight = height - 14;
+
+        graphics.blit(CURIO_BACKGROUND, x, y, 91, 0, 7, 7);
+        graphics.blit(CURIO_BACKGROUND, x + width - 7, y, 116, 0, 7, 7);
+        graphics.blit(CURIO_BACKGROUND, x, y + height - 7, 91, 159, 7, 7);
+        graphics.blit(CURIO_BACKGROUND, x + width - 7, y + height - 7, 116, 159, 7, 7);
+
+        graphics.blit(CURIO_BACKGROUND, x, y + 7, 91, 7, 7, insideHeight);
+        graphics.blit(CURIO_BACKGROUND, x + width - 7, y + 7, 116, 7, 7, insideHeight);
+
+        for (int offset = 0; offset < insideWidth; offset += 18) {
+            int pieceWidth = Math.min(18, insideWidth - offset);
+            graphics.blit(CURIO_BACKGROUND, x + 7 + offset, y, 98, 0, pieceWidth, 7);
+            graphics.blit(CURIO_BACKGROUND, x + 7 + offset, y + 7,
+                    98, 7, pieceWidth, insideHeight);
+            graphics.blit(CURIO_BACKGROUND, x + 7 + offset, y + height - 7,
+                    98, 159, pieceWidth, 7);
+        }
     }
 
     @Override
     protected void init() {
         super.init();
+        curioIcons.clear();
+        previousCurioPage = null;
+        nextCurioPage = null;
+        if (menu.hasCurios()) {
+            // Keep the main window at its normal position. Shift only if both panels
+            // fit and the accessory panel would otherwise be clipped on the left.
+            int reservedWidth = menu.getMaximumCurioPanelWidth() + CompanionCurios.PANEL_GAP;
+            if (width >= imageWidth + reservedWidth) {
+                leftPos = Math.max(leftPos, reservedWidth);
+            }
+            if (menu.getCurioPageCount() > 1) {
+                int arrowY = getCurioFrameY() + 2;
+                int arrowX = leftPos - CompanionCurios.PANEL_GAP - 29;
+                previousCurioPage = addRenderableWidget(new CurioPageButton(arrowX, arrowY, false, button -> {
+                    menu.setCurioPage(menu.getCurioPage() - 1);
+                    updateCurioPageButtons();
+                }));
+                nextCurioPage = addRenderableWidget(new CurioPageButton(arrowX + 11, arrowY, true, button -> {
+                    menu.setCurioPage(menu.getCurioPage() + 1);
+                    updateCurioPageButtons();
+                }));
+                updateCurioPageButtons();
+            }
+        }
         row1 = topPos + 66;
         row2 = row1 + rowHeight;
         row3 = row2 + rowHeight;
@@ -110,7 +210,7 @@ public class CompanionScreen extends AbstractContainerScreen<CompanionContainer>
                 ALERT_BUTTON,
                 btn -> {
                     PacketHandler.INSTANCE.sendToServer(new SetAlertPacket(companion.getId()));
-        }));
+                }));
         this.huntingButton = addRenderableWidget(new CompanionButton("hunting", col2, row1,
                 16,
                 12, 0, 0,13,
@@ -190,6 +290,20 @@ public class CompanionScreen extends AbstractContainerScreen<CompanionContainer>
     @Override
     protected void renderTooltip(GuiGraphics pGuiGraphics, int x, int y) {
         super.renderTooltip(pGuiGraphics, x, y);
+        if (hoveredSlot != null && !hoveredSlot.hasItem()) {
+            CompanionCurioSlotData address = menu.getCurioSlotData(hoveredSlot.index);
+            if (address != null) {
+                List<Component> lines = new ArrayList<>();
+                lines.add(Component.translatable("curios.identifier." + address.identifier()));
+                lines.add(Component.translatable("gui.humancompanions.curios.approved_only")
+                        .withStyle(ChatFormatting.GRAY));
+                if (!menu.getCarried().isEmpty() && !CompanionCurios.isApproved(menu.getCarried())) {
+                    lines.add(Component.translatable("gui.humancompanions.curios.not_approved")
+                            .withStyle(ChatFormatting.RED));
+                }
+                pGuiGraphics.renderTooltip(font, lines, Optional.empty(), x, y);
+            }
+        }
         if (this.alertButton.isHovered()) {
             List<Component> tooltips = new ArrayList<>();
             if (this.companion.isAlert()) {
@@ -256,6 +370,59 @@ public class CompanionScreen extends AbstractContainerScreen<CompanionContainer>
                 tooltips.add(Component.literal("Companion will not move while attacking in guard mode").withStyle(ChatFormatting.GRAY).withStyle(ChatFormatting.ITALIC));
 
                 pGuiGraphics.renderTooltip(this.font, tooltips, Optional.empty(), x, y);
+            }
+        }
+    }
+
+    private void updateCurioPageButtons() {
+        if (previousCurioPage != null) {
+            previousCurioPage.active = menu.getCurioPage() > 0;
+            nextCurioPage.active = menu.getCurioPage() + 1 < menu.getCurioPageCount();
+        }
+    }
+
+    @Override
+    protected boolean hasClickedOutside(double mouseX, double mouseY, int guiLeft, int guiTop, int button) {
+        boolean insideMain = mouseX >= leftPos && mouseX < leftPos + imageWidth
+                && mouseY >= topPos && mouseY < topPos + imageHeight;
+        boolean insideCurios = menu.hasCurios()
+                && mouseX >= getCurioFrameX() && mouseX < getCurioFrameX() + menu.getCurioPanelWidth()
+                && mouseY >= getCurioFrameY() && mouseY < getCurioFrameY() + getCurioFrameHeight();
+        return !insideMain && !insideCurios;
+    }
+
+    // This class is loaded only when the accessory panel asks for an icon.
+    // Its Curios API references never need to resolve when Curios is absent.
+    private static final class CuriosArtwork {
+        private static ResourceLocation getSlotIcon(String identifier, Level level) {
+            return top.theillusivec4.curios.api.CuriosApi.getSlot(identifier, level)
+                    .map(slot -> slot.getIcon())
+                    .orElse(EMPTY_CURIO_ICON);
+        }
+    }
+
+    private final class CurioPageButton extends Button {
+        private final boolean next;
+
+        private CurioPageButton(int x, int y, boolean next, Button.OnPress onPress) {
+            super(x, y, 11, 12, Component.literal(next ? ">" : "<"), onPress, DEFAULT_NARRATION);
+            this.next = next;
+        }
+
+        @Override
+        public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            int u = next ? 43 : 32;
+            int v = 25;
+            if (!active) {
+                v += 12;
+            } else if (isHoveredOrFocused()) {
+                u += 22;
+            }
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            graphics.blit(CURIO_BACKGROUND, getX(), getY(), u, v, width, height);
+            if (isHovered()) {
+                graphics.renderTooltip(font, Component.translatable("gui.curios.page",
+                        menu.getCurioPage() + 1, menu.getCurioPageCount()), mouseX, mouseY);
             }
         }
     }

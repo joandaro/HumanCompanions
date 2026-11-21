@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import static com.github.justinwon777.humancompanions.core.ItemInit.*;
+import com.github.justinwon777.humancompanions.compat.CompanionCurios;
 
 @Mod(HumanCompanions.MOD_ID)
 public class HumanCompanions {
@@ -25,6 +26,7 @@ public class HumanCompanions {
         StructureInit.DEFERRED_REGISTRY_STRUCTURE.register(eventBus);
         PacketHandler.register();
         Config.register();
+        CompanionCurios.register();
     }
 
     public void buildContents(BuildCreativeModeTabContentsEvent event) {

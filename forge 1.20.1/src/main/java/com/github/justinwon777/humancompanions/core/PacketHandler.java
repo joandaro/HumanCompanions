@@ -14,16 +14,24 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraftforge.network.NetworkDirection;
+import java.util.Optional;
 
 public class PacketHandler {
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "2";
     public static final SimpleChannel INSTANCE =
             NetworkRegistry.newSimpleChannel(new ResourceLocation(HumanCompanions.MOD_ID,
             "main"), () -> PROTOCOL_VERSION, PROTOCOL_VERSION::equals, PROTOCOL_VERSION::equals);
 
     public static void register() {
         int id = 0;
-        INSTANCE.registerMessage(id++, OpenInventoryPacket.class, OpenInventoryPacket::encode, OpenInventoryPacket::decode, OpenInventoryPacket::handle);
+        INSTANCE.registerMessage(
+                id++,
+                OpenInventoryPacket.class,
+                OpenInventoryPacket::encode,
+                OpenInventoryPacket::decode,
+                OpenInventoryPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         INSTANCE.registerMessage(id++, SetAlertPacket.class, SetAlertPacket::encode, SetAlertPacket::decode,
                 SetAlertPacket::handle);
         INSTANCE.registerMessage(id++, SetHuntingPacket.class, SetHuntingPacket::encode, SetHuntingPacket::decode,
@@ -47,7 +55,11 @@ public class PacketHandler {
             if (entity instanceof AbstractHumanCompanionEntity) {
                 AbstractHumanCompanionEntity companion = (AbstractHumanCompanionEntity) entity;
                 LocalPlayer clientplayerentity = Minecraft.getInstance().player;
-                CompanionContainer container = new CompanionContainer(packet.getId(), player.getInventory(), companion.inventory);
+                CompanionContainer container = new CompanionContainer(
+                        packet.getId(),
+                        player.getInventory(),
+                        companion,
+                        packet.getCurioSlots());
                 clientplayerentity.containerMenu = container;
                 Minecraft.getInstance().setScreen(new CompanionScreen(container, player.getInventory(), companion));
             }

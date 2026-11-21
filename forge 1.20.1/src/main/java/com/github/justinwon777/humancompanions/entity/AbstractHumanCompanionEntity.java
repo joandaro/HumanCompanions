@@ -370,9 +370,21 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
             player.closeContainer();
         }
         player.nextContainerCounter();
-        PacketHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> player), new OpenInventoryPacket(
-                player.containerCounter, this.inventory.getContainerSize(), this.getId()));
-        player.containerMenu = new CompanionContainer(player.containerCounter, player.getInventory(), this.inventory);
+
+        CompanionContainer menu = new CompanionContainer(
+                player.containerCounter,
+                player.getInventory(),
+                this);
+
+        PacketHandler.INSTANCE.send(
+                PacketDistributor.PLAYER.with(() -> player),
+                new OpenInventoryPacket(
+                        player.containerCounter,
+                        this.inventory.getContainerSize(),
+                        this.getId(),
+                        menu.getCurioSlots()));
+
+        player.containerMenu = menu;
         player.initMenu(player.containerMenu);
         MinecraftForge.EVENT_BUS.post(new PlayerContainerEvent.Open(player, player.containerMenu));
     }
@@ -510,13 +522,10 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
     public ItemStack checkFood() {
         for (int i = 0; i < this.inventory.getContainerSize(); i++) {
             ItemStack stack = this.inventory.getItem(i);
-
             if (!this.isAllowedFood(stack)) {continue;}
 
             var food = stack.getFoodProperties(this);
             if (food.getNutrition() + this.getHealth() > this.getMaxHealth()) {continue;}
-
-            if (CompanionSmelting.canSmelt(stack, this.level())) {continue;}
 
             return stack;
         }
@@ -526,6 +535,7 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
     private boolean isAllowedFood(ItemStack stack) {
         if (stack.is(Items.ROTTEN_FLESH)) return true;
         if (!stack.isEdible()) return false;
+        if (CompanionSmelting.canSmelt(stack, this.level())) return false;
 
         var food = stack.getFoodProperties(this);
         if (food == null) return false;
@@ -556,6 +566,7 @@ public class AbstractHumanCompanionEntity extends TamableAnimal {
                 || Config.EXTRA_PICKUP_ITEMS.get().contains(id.toString())
                 || (this.inventory.hasAnyMatching(existing -> !existing.isEmpty() && existing.is(stack.getItem())) && !this.isEquippedItem(stack))
                 || this.isAllowedFood(stack))
+                || CompanionSmelting.canSmelt(stack, this.level())
                 && this.inventory.canAddItem(stack);
     }
 

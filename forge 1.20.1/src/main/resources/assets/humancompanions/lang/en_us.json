@@ -7,5 +7,8 @@
   "item.humancompanions.arbalist_spawn_egg": "Arbalist Spawn Egg",
   "item.humancompanions.archer_spawn_egg": "Archer Spawn Egg",
   "item.humancompanions.axeguard_spawn_egg": "Axegurd Spawn Egg",
-  "item.humancompanions.knight_spawn_egg": "Knight Spawn Egg"
+  "item.humancompanions.knight_spawn_egg": "Knight Spawn Egg",
+  "gui.humancompanions.curios": "Accessories",
+  "gui.humancompanions.curios.approved_only": "Only a selected set of accessories are allowed",
+  "gui.humancompanions.curios.not_approved": "Accessory not approved for companions"
 }
